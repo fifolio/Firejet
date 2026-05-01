@@ -12,6 +12,15 @@ export default function Home() {
   const handleAddItem = async () => {
     await addDoc(collection(db, "items"), { inputText })
     setInputText('');
+    
+    // Fetch the updated list of items after adding a new one
+    const snapshot = await getDocs(collection(db, "items"));
+    setItems(snapshot.docs.map((doc) => (
+      {
+        id: doc.id,
+        inputText: doc.data().inputText
+      }
+    )));
   };
 
   useEffect(() => {
