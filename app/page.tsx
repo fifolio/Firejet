@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addDoc, collection, getDocs } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
 import { db } from "@/backend/config";
 
 export default function Home() {
@@ -9,11 +9,8 @@ export default function Home() {
   const [inputText, setInputText] = useState('');
   const [items, setItems] = useState<{ id: string; inputText: string }[]>([]);
 
-  const handleAddItem = async () => {
-    await addDoc(collection(db, "items"), { inputText })
-    setInputText('');
-    
-    // Fetch the updated list of items after adding a new one
+  // Fetch the updated list of items after adding, editing, or deleting an item
+  const fetchItems = async () => {
     const snapshot = await getDocs(collection(db, "items"));
     setItems(snapshot.docs.map((doc) => (
       {
@@ -21,7 +18,34 @@ export default function Home() {
         inputText: doc.data().inputText
       }
     )));
+  }
+
+  // Function to handle adding a new item to Firestore
+  const handleAddItem = async () => {
+    await addDoc(collection(db, "items"), { inputText })
+    setInputText('');
+
+    // Fetch the updated list of items after adding a new one
+    fetchItems();
   };
+
+  // Function to handle item deletion
+  const handleDelete = (id: string) => async () => {
+    await deleteDoc(doc(db, "items", id));
+
+    // Fetch the updated list of items after deletion
+    fetchItems();
+  }
+
+  const handleUpdate = (id: string) => async () => {
+    await updateDoc(doc(db, "items", id), {
+      inputText: inputText
+    })
+
+    // Fetch the updated list of items after editing
+    fetchItems();
+  }
+
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -48,8 +72,17 @@ export default function Home() {
       <ul>
         {
           items.length > 0 ?
-            items.map((item) => (<li key={item.id}>{item.inputText}</li>))
-            : <li>No items to display</li>}
+            items.map((item) => (
+              <div key={item.id}>
+                <div className="w-full flex justify-between items-center space-y-4">
+                  <li className="my-5">{item.inputText}</li>
+                  <button onClick={handleUpdate(item.id)} className="bg-yellow-700 py-1 px-2 rounded-md cursor-pointer">Edit</button>
+                  <button onClick={handleDelete(item.id)} className="bg-red-700 py-1 px-2 rounded-md cursor-pointer">Delete</button>
+                </div>
+              </div>
+            ))
+            : <li>No items to display</li>
+        }
       </ul>
     </div>
   );
